@@ -1,0 +1,27 @@
+target/
+.idea/
+*.iml
+.vscode/
+brief/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Eclipse / Java language server files
+.factorypath
+.classpath
+.project
+.settings/
+.apt_generated/
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: customers
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/customers}
+    username: ${DB_USERNAME:customers}
+    password: ${DB_PASSWORD:customers}
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      fail-on-unknown-properties: true
+    read:
+      strict-duplicate-detection: true

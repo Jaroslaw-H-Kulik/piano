@@ -1,0 +1,78 @@
+# Task scenario "Flowers Incorporated" (brief/TASK.md), step by step.
+# Run the requests top to bottom: click "Send Request" above each one.
+# Needs the "REST Client" extension (humao.rest-client) and the app running on localhost:8080.
+#
+# Re-running: field registration answers 409 the second time, because the tenant already has the
+# fields. Change @tenant to start fresh (or run the cleanup request at the bottom of the file
+# plus a database reset: `docker compose down -v && docker compose up -d`).
+
+@host = http://localhost:8080
+@tenant = tenant_123
+@customer = cus_123
+
+### 1. Register generic field "dob" (expect 200)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "name": "dob", "type": "DATETIME" }
+
+### 2. Register generic field "vip" (expect 200)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "name": "vip", "type": "BOOL" }
+
+### 3. Register generic field "score" (expect 200)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "name": "score", "type": "INTEGER" }
+
+### 4. Create customer (expect 200)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{
+  "id": "{{customer}}",
+  "first_name": "John",
+  "last_name": "Smith",
+  "generic_fields": {
+    "dob": "1990-01-01T00:00:00",
+    "vip": true,
+    "score": 100
+  }
+}
+
+### 5. Fetch customer (expect 200, same data as created)
+GET {{host}}/customers/{{customer}}
+X-Tenant-Id: {{tenant}}
+
+### 6. Update customer (expect 200): dob null = removed, score omitted = kept
+PATCH {{host}}/customers/{{customer}}
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{
+  "first_name": null,
+  "last_name": null,
+  "generic_fields": {
+    "dob": null,
+    "vip": false
+  }
+}
+
+### 7. Fetch after update (expect Lewis Bull, generic_fields = { vip: false, score: 100 })
+GET {{host}}/customers/{{customer}}
+X-Tenant-Id: {{tenant}}
+
+### 8. Delete customer (expect 204)
+DELETE {{host}}/customers/{{customer}}
+X-Tenant-Id: {{tenant}}
+
+### 9. Fetch deleted customer (expect 404 CUSTOMER_NOT_FOUND)
+GET {{host}}/customers/{{customer}}
+X-Tenant-Id: {{tenant}}

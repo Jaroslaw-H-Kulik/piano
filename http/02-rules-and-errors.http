@@ -1,0 +1,162 @@
+# Rules and error cases from brief/TASK.md and the API contract.
+# Needs the "REST Client" extension (humao.rest-client) and the app running on localhost:8080.
+# Uses its own tenant so it does not collide with 01-task-scenario.http.
+# Run the "Setup" requests first; the rest can then be sent in any order, except where noted.
+
+@host = http://localhost:8080
+@tenant = rules_tenant
+@other_tenant = rules_other_tenant
+
+### Setup: register field "score" (200 first time, 409 afterwards: both fine)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "name": "score", "type": "INTEGER" }
+
+### Setup: create customer cus_1 (200 first time, 409 afterwards: both fine)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_1", "first_name": "Ann", "generic_fields": { "score": 1 } }
+
+# ---------------------------------------------------------------------------
+# Uniqueness rules
+# ---------------------------------------------------------------------------
+
+### Duplicate generic field name in the same tenant (expect 409 GENERIC_FIELD_ALREADY_EXISTS)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "name": "score", "type": "STRING" }
+
+### Same field name in another tenant is allowed (expect 200 first time)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{other_tenant}}
+Content-Type: application/json
+
+{ "name": "score", "type": "STRING" }
+
+### Duplicate customer public id in the same tenant (expect 409 CUSTOMER_ALREADY_EXISTS)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_1" }
+
+### Same public id in another tenant is allowed (expect 200 first time)
+POST {{host}}/customers
+X-Tenant-Id: {{other_tenant}}
+Content-Type: application/json
+
+{ "id": "cus_1" }
+
+### Tenant isolation: customer of another tenant is invisible (expect 404)
+GET {{host}}/customers/cus_1
+X-Tenant-Id: some_tenant_without_customers
+
+# ---------------------------------------------------------------------------
+# Only the public id is mandatory
+# ---------------------------------------------------------------------------
+
+### Customer with only an id (expect 200)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_minimal" }
+
+### Customer without an id (expect 400 INVALID_REQUEST)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "first_name": "No", "last_name": "Id" }
+
+# ---------------------------------------------------------------------------
+# Generic field validation
+# ---------------------------------------------------------------------------
+
+### Unregistered generic field (expect 400)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_bad_1", "generic_fields": { "not_registered": 1 } }
+
+### Wrong value type: string for INTEGER field (expect 400)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_bad_2", "generic_fields": { "score": "high" } }
+
+### Wrong value type: number with fraction for INTEGER field (expect 400)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_bad_3", "generic_fields": { "score": 1.5 } }
+
+### Unknown field type on registration (expect 400 INVALID_REQUEST)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "name": "weird", "type": "UUID" }
+
+### Missing field name on registration (expect 400 INVALID_REQUEST)
+POST {{host}}/generic_fields
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "type": "STRING" }
+
+# ---------------------------------------------------------------------------
+# Request-level validation (documented deviations from the task examples)
+# ---------------------------------------------------------------------------
+
+### Missing X-Tenant-Id header (expect 400)
+GET {{host}}/customers/cus_1
+
+### Unknown body property, e.g. tenant_id in the body (expect 400)
+POST {{host}}/customers
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "tenant_id": "{{tenant}}", "id": "cus_bad_4" }
+
+### Public id is immutable: id in PATCH body (expect 400)
+PATCH {{host}}/customers/cus_1
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "id": "cus_other" }
+
+# ---------------------------------------------------------------------------
+# PATCH semantics: omitted = keep, null = clear, value = set
+# ---------------------------------------------------------------------------
+
+### Clear last_name and set score; first_name omitted stays (expect 200)
+PATCH {{host}}/customers/cus_1
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "last_name": null, "generic_fields": { "score": 42 } }
+
+### Verify (expect first_name Ann, no last_name, score 42)
+GET {{host}}/customers/cus_1
+X-Tenant-Id: {{tenant}}
+
+### Patch a non-existent customer (expect 404 CUSTOMER_NOT_FOUND)
+PATCH {{host}}/customers/does_not_exist
+X-Tenant-Id: {{tenant}}
+Content-Type: application/json
+
+{ "first_name": "Ghost" }
+
+### Delete a non-existent customer (expect 404 CUSTOMER_NOT_FOUND)
+DELETE {{host}}/customers/does_not_exist
+X-Tenant-Id: {{tenant}}
