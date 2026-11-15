@@ -30,15 +30,17 @@ public class UpdateCustomerService implements UpdateCustomer {
 
     @Override
     public Customer execute(UpdateCustomerCommand command) {
-        for (int attempt = 1; attempt < MAX_ATTEMPTS; attempt++) {
+        for (int attempt = 1; ; attempt++) {
             try {
                 return readApplyAndSave(command);
             } catch (CustomerModifiedConcurrentlyException e) {
+                if (attempt == MAX_ATTEMPTS) {
+                    throw e;
+                }
                 // Read again. If the customer was deleted meanwhile, that read ends in
                 // CustomerNotFoundException.
             }
         }
-        return readApplyAndSave(command);
     }
 
     private Customer readApplyAndSave(UpdateCustomerCommand command) {

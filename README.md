@@ -17,6 +17,7 @@ Author: Jarosław Kulik
 ```
 
 This builds the three modules and runs all tests. Unit tests (`*Test`, Surefire, `./mvnw test`) need no Docker. Integration and end-to-end tests (`*IT`, Failsafe, `verify`) use Testcontainers (PostgreSQL), so the Docker daemon must be running.
+
 | | Linux / macOS | Windows (PowerShell) |
 |---|---|---|
 | Build and test | `./mvnw verify` | `.\mvnw.cmd verify` |
@@ -82,7 +83,7 @@ Every error has the same body: `{"error": "<CODE>", "message": "<text>"}`.
 - **Update is `PATCH`, not a full replace**, with one rule for every attribute: omitted keeps the stored value, `null` removes it, a value replaces it. This is what the task's update example describes.
 - **Successful calls return 200, as in the task text; deletion returns 204.**
 - **Unknown properties in request bodies are rejected (400)** instead of ignored, so a typo cannot silently lose data.
-- **The task does not name the string type.** It is called `STRING`; supported types are `BOOL`, `INTEGER`, `STRING`, `DATETIME`.
+- **The task names the types in words, not as identifiers.** The API uses `BOOL`, `INTEGER`, `STRING` and `DATETIME`.
 
 **Behaviour**
 
@@ -105,3 +106,7 @@ Every error has the same body: `{"error": "<CODE>", "message": "<text>"}`.
 | Persistence integration | JSONB round trip of all types, duplicate keys, optimistic locking, tenant isolation (PostgreSQL in Docker) |
 | Request parsing | PATCH tri-state, unknown properties, JSON shapes |
 | API (`e2e/*ApiIT`) | every endpoint through real HTTP to the embedded server (requests and responses as plain maps): the task's example, error cases, tenant isolation, concurrent create / patch races. Assertions also read the rows in PostgreSQL (Docker). There are no separate use-case tests; the API tests cover them. |
+
+## How this was built
+
+This solution was developed with Claude Code. Design decisions were agreed in a plan-first workflow before any code was written, and the working agreements (architecture, API and testing conventions) are kept in `CLAUDE.md` so the same workflow can be continued in later sessions. All code was reviewed by me.
