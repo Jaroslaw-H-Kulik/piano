@@ -115,12 +115,6 @@ Every error has the same body: `{"error": "<CODE>", "message": "<text>"}`.
 Deliberately left out of this solution, roughly in the order I would add them:
 
 - **Size limits**: a request body cap, a maximum number of generic fields per customer, a maximum string length and a maximum number of definitions per tenant. Today one tenant can grow rows without bound, and every PATCH rewrites the whole JSONB value.
-- **One query per read**: load the definitions together with the customer (or cache them per tenant) instead of in a second round trip.
-- **Atomic PATCH under contention**: every rule is checked per value, so a PATCH could be a single `UPDATE` that merges the JSONB in SQL, with no read, retry or 409. Worth it only if many clients write the same customer at once.
-- **Conditional requests**: return the version as an `ETag` and accept `If-Match` on PATCH, so a client's own read-modify-write cannot overwrite a change it has not seen.
-- **Tenant isolation in depth**: PostgreSQL row-level security, so a query that forgets `tenant_id` returns nothing instead of another tenant's data. Real authentication replaces the trusted header.
-- **Operations**: health and readiness endpoints, metrics for conflicts and retries, statement timeouts, and no default database credentials outside local development.
-- **API**: `GET /generic_fields` so clients can discover the types, listing and searching customers (JSONB indexes, and a decision on comparing datetimes with and without an offset), accepting `application/merge-patch+json` for PATCH, and a note that integers above 2^53 lose precision in JavaScript clients.
 
 ## How this was built
 
