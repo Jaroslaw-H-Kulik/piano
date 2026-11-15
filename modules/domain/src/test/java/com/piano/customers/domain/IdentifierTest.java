@@ -10,18 +10,23 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class IdentifierTest {
 
-    @Test
-    void tenantIdKeepsItsValue() {
-        assertThat(new TenantId("tenant_123").value()).isEqualTo("tenant_123");
+    private static final String INVALID_TENANT_ID_MESSAGE =
+            "Tenant id must be 1-128 characters: letters, digits, underscore or hyphen";
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"tenant_123", "T", "Mixed_Case-9", "123e4567-e89b-12d3-a456-426614174000"})
+    void tenantIdAcceptsLettersDigitsUnderscoreAndHyphen(String id) {
+        assertThat(new TenantId(id).value()).isEqualTo(id);
     }
 
     @ParameterizedTest
     @EmptySource
-    @ValueSource(strings = {" ", "\t"})
-    void tenantIdRejectsBlankValues(String blank) {
-        assertThatThrownBy(() -> new TenantId(blank))
+    @ValueSource(strings = {" ", "\t", " tenant_1", "tenant 1", "a/b", "a.b", "a:b", "zażółć"})
+    void tenantIdRejectsCharactersOutsideTheAllowedSet(String invalid) {
+        assertThatThrownBy(() -> new TenantId(invalid))
                 .isInstanceOf(DomainValidationException.class)
-                .hasMessage("Tenant id must not be blank");
+                .hasMessage(INVALID_TENANT_ID_MESSAGE);
     }
 
     @Test
@@ -30,7 +35,7 @@ class IdentifierTest {
 
         assertThatThrownBy(() -> new TenantId(tooLong))
                 .isInstanceOf(DomainValidationException.class)
-                .hasMessage("Tenant id must not be longer than 128 characters");
+                .hasMessage(INVALID_TENANT_ID_MESSAGE);
     }
 
     @Test

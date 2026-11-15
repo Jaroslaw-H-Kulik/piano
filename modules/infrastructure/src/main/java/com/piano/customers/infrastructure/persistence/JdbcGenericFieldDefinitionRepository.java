@@ -6,11 +6,13 @@ import com.piano.customers.domain.FieldType;
 import com.piano.customers.domain.GenericFieldDefinition;
 import com.piano.customers.domain.GenericFieldDefinitionRepository;
 import com.piano.customers.domain.TenantId;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.SqlParameterValue;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 public class JdbcGenericFieldDefinitionRepository implements GenericFieldDefinitionRepository {
@@ -49,14 +51,17 @@ public class JdbcGenericFieldDefinitionRepository implements GenericFieldDefinit
                 """
                 SELECT name, type
                 FROM generic_field_definition
-                WHERE tenant_id = :tenantId AND name IN (:names)
+                WHERE tenant_id = :tenantId AND name = ANY(:names)
                 """;
-        List<String> nameTexts = names.stream().map(FieldName::value).toList();
+        // One array parameter, not one parameter per name: an IN list fails beyond the protocol's
+        // 65535 bind parameters and gives every list size its own statement text.
+        String[] nameTexts = names.stream().map(FieldName::value).toArray(String[]::new);
+        var namesArray = new SqlParameterValue(Types.ARRAY, nameTexts);
 
         List<GenericFieldDefinition> found =
                 jdbc.sql(sql)
                         .param("tenantId", tenantId.value())
-                        .param("names", nameTexts)
+                        .param("names", namesArray)
                         .query(
                                 (row, rowNumber) ->
                                         new GenericFieldDefinition(

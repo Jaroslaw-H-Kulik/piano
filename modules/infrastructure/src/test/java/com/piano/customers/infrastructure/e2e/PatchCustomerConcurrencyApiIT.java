@@ -25,8 +25,7 @@ class PatchCustomerConcurrencyApiIT extends CustomerApiTest {
     @Test
     void concurrentPatchesOfDifferentAttributesAreAllApplied() throws Exception {
         // Three competitors can make an attempt fail at most twice (each failure means another one
-        // succeeded),
-        // so the third attempt of every request is guaranteed to succeed.
+        // succeeded), so the third attempt of every request is guaranteed to succeed.
         givenJohnSmith(tenantA);
         List<Callable<ApiResponse>> patches =
                 List.of(

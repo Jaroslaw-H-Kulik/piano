@@ -49,9 +49,8 @@ record GenericFieldChanges(Map<FieldName, Object> toSet, Set<FieldName> toRemove
     }
 
     // Deliberately the same mapping as GenericFieldsJson.toRawValue (persistence). The API and the
-    // stored JSON share a
-    // format today, but each may change on its own, and they fail differently: 400 here, 500 for
-    // corrupt stored data.
+    // stored JSON share a format today, but each may change on its own, and they fail
+    // differently: 400 here, 500 for corrupt stored data.
     private static Object toRawValue(String name, JsonNode value) {
         if (value.isBoolean()) {
             return value.booleanValue();

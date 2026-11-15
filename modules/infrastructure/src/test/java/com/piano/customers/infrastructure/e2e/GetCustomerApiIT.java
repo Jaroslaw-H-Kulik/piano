@@ -5,6 +5,8 @@ import static com.piano.customers.infrastructure.e2e.helper.ApiClient.json;
 import com.piano.customers.infrastructure.e2e.helper.CustomerApiTest;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class GetCustomerApiIT extends CustomerApiTest {
 
@@ -38,5 +40,33 @@ class GetCustomerApiIT extends CustomerApiTest {
         givenJohnSmith(tenantA);
 
         assertCustomerNotFound(tenantB.getCustomer(CUSTOMER_ID), CUSTOMER_ID);
+    }
+
+    /**
+     * A stored row that no longer passes validation is a server fault, not a bad request: the
+     * client sent nothing wrong.
+     */
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            textBlock =
+                    """
+                    John | {"score": "100"}
+                    John | {"dob": "yesterday"}
+                    John | {"not a name": true}
+                    ' '  | {}
+                    John | {"unregistered": 1}
+                    """)
+    void answersAnInternalErrorForACorruptStoredCustomer(
+            String firstName, String genericFieldsJson) {
+        registerTaskExampleFields(tenantA);
+        jdbc.sql(
+                        """
+                        INSERT INTO customer (tenant_id, public_id, first_name, generic_fields)
+                        VALUES (?, ?, ?, CAST(? AS jsonb))""")
+                .params(TENANT_A, CUSTOMER_ID, firstName, genericFieldsJson)
+                .update();
+
+        assertError(tenantA.getCustomer(CUSTOMER_ID), 500, "INTERNAL_ERROR", "Unexpected error");
     }
 }

@@ -24,7 +24,8 @@ class ErrorShapeApiIT extends ApiTest {
     @Test
     void rejectsABlankTenantHeader() {
         assertInvalidRequest(
-                clientWithTenantHeader("  ").getCustomer("cus_123"), "Tenant id must not be blank");
+                clientWithTenantHeader("  ").getCustomer("cus_123"),
+                "Tenant id must be 1-128 characters: letters, digits, underscore or hyphen");
     }
 
     @Test

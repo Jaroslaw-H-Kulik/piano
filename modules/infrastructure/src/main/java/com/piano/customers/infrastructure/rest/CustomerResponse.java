@@ -5,9 +5,13 @@ import com.piano.customers.domain.FieldName;
 import com.piano.customers.domain.FieldValue;
 import java.util.HashMap;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 public record CustomerResponse(
-        String id, String firstName, String lastName, Map<String, Object> genericFields) {
+        String id,
+        @Nullable String firstName,
+        @Nullable String lastName,
+        Map<String, Object> genericFields) {
 
     public static CustomerResponse from(Customer customer) {
         Map<String, Object> genericFields = new HashMap<>();

@@ -3,8 +3,10 @@ package com.piano.customers.domain;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -23,8 +25,20 @@ public record DateTimeValue(LocalDateTime value, @Nullable ZoneOffset offset)
     public static final String FORMAT_DESCRIPTION =
             "ISO 8601, e.g. 1990-01-01T00:00:00 or 1990-01-01T00:00:00Z";
 
-    /** Parses leniently as ISO 8601 (seconds optional, fraction optional, offset optional). */
-    private static final DateTimeFormatter PARSER = DateTimeFormatter.ISO_DATE_TIME;
+    /**
+     * ISO 8601 with seconds, fraction and offset optional. Unlike {@link
+     * DateTimeFormatter#ISO_DATE_TIME} it rejects a zone name ({@code [Europe/Paris]}), which could
+     * not be stored and so would not round-trip. Strict resolving keeps {@code 1990-02-30} invalid.
+     */
+    private static final DateTimeFormatter PARSER =
+            new DateTimeFormatterBuilder()
+                    .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    .optionalStart()
+                    .appendOffsetId()
+                    .optionalEnd()
+                    .toFormatter()
+                    .withResolverStyle(ResolverStyle.STRICT)
+                    .withChronology(IsoChronology.INSTANCE);
 
     /** Always writes seconds, so midnight is {@code T00:00:00} and not {@code T00:00}. */
     private static final DateTimeFormatter LOCAL_WRITER =

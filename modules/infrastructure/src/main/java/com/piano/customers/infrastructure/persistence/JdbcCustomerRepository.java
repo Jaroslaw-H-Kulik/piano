@@ -4,6 +4,7 @@ import com.piano.customers.domain.Customer;
 import com.piano.customers.domain.CustomerId;
 import com.piano.customers.domain.CustomerModifiedConcurrentlyException;
 import com.piano.customers.domain.CustomerRepository;
+import com.piano.customers.domain.DomainValidationException;
 import com.piano.customers.domain.DuplicateCustomerException;
 import com.piano.customers.domain.FieldName;
 import com.piano.customers.domain.FieldValue;
@@ -96,8 +97,7 @@ public class JdbcCustomerRepository implements CustomerRepository {
 
         if (updatedRows == 0) {
             // The row was changed or deleted since the caller read it. Which of the two is for the
-            // use case to
-            // find out (by reading again), so there is no "not found" here.
+            // use case to find out (by reading again), so there is no "not found" here.
             throw new CustomerModifiedConcurrentlyException(customer.id());
         }
         return new Customer(
@@ -120,16 +120,24 @@ public class JdbcCustomerRepository implements CustomerRepository {
         return deletedRows > 0;
     }
 
+    /**
+     * A stored row that fails validation is corrupt data or a rule tightened after it was written.
+     * Either way it is a server fault (500, logged), not the client's bad request (400).
+     */
     private Customer toCustomer(TenantId tenantId, CustomerId id, StoredCustomer stored) {
-        Map<FieldName, FieldValue> genericFields =
-                parseGenericFields(tenantId, stored.genericFieldsJson());
-        return new Customer(
-                tenantId,
-                id,
-                stored.firstName(),
-                stored.lastName(),
-                genericFields,
-                stored.version());
+        try {
+            Map<FieldName, FieldValue> genericFields =
+                    parseGenericFields(tenantId, stored.genericFieldsJson());
+            return new Customer(
+                    tenantId,
+                    id,
+                    stored.firstName(),
+                    stored.lastName(),
+                    genericFields,
+                    stored.version());
+        } catch (DomainValidationException e) {
+            throw new IllegalStateException("Stored customer " + id.value() + " is invalid", e);
+        }
     }
 
     private Map<FieldName, FieldValue> parseGenericFields(

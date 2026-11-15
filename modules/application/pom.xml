@@ -13,7 +13,7 @@
 
     <artifactId>application</artifactId>
     <name>application</name>
-    <description>Use cases. Depends on the domain only; no framework dependencies. Tested in the infrastructure module against a real database (decision 32).</description>
+    <description>Use cases. Depends on the domain only; no framework dependencies. Tested through the API in the infrastructure module against a real database.</description>
 
     <dependencies>
         <dependency>

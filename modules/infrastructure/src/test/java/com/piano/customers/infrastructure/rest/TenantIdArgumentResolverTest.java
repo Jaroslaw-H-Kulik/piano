@@ -62,6 +62,7 @@ class TenantIdArgumentResolverTest {
                                 resolver.resolveArgument(
                                         parameter(0), null, requestWithTenant(" "), null))
                 .isInstanceOf(DomainValidationException.class)
-                .hasMessage("Tenant id must not be blank");
+                .hasMessage(
+                        "Tenant id must be 1-128 characters: letters, digits, underscore or hyphen");
     }
 }

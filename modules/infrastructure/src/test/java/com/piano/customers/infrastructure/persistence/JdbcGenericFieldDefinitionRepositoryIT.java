@@ -8,6 +8,7 @@ import com.piano.customers.domain.FieldName;
 import com.piano.customers.domain.FieldType;
 import com.piano.customers.domain.GenericFieldDefinition;
 import com.piano.customers.domain.TenantId;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,21 @@ class JdbcGenericFieldDefinitionRepositoryIT extends PostgresRepositoryTest {
         repository.insert(new GenericFieldDefinition(TENANT, DOB, FieldType.DATETIME));
 
         assertThat(repository.findByNames(TENANT, Set.of())).isEmpty();
+    }
+
+    @Test
+    void findsDefinitionsForMoreNamesThanTheDriverCanBindAsParameters() {
+        repository.insert(new GenericFieldDefinition(TENANT, DOB, FieldType.DATETIME));
+        repository.insert(new GenericFieldDefinition(TENANT, VIP, FieldType.BOOL));
+        // PostgreSQL's wire protocol allows at most 65535 bind parameters per statement.
+        Set<FieldName> manyNames = new HashSet<>(Set.of(DOB, VIP));
+        for (int i = 0; i < 70_000; i++) {
+            manyNames.add(new FieldName("unregistered_" + i));
+        }
+
+        Map<FieldName, GenericFieldDefinition> found = repository.findByNames(TENANT, manyNames);
+
+        assertThat(found).containsOnlyKeys(DOB, VIP);
     }
 
     @Test

@@ -67,7 +67,10 @@ class DateTimeValueTest {
                 "1990-02-30T00:00:00",
                 "1990-13-01T00:00:00",
                 "not a date",
-                ""
+                "",
+                // A zone name would be dropped on storage, so the value would not round-trip.
+                "1990-01-01T00:00:00+01:00[Europe/Paris]",
+                "1990-01-01T00:00:00Z[UTC]"
             })
     void rejectsTextThatIsNotAnIsoDateTime(String text) {
         assertThatThrownBy(() -> DateTimeValue.parse(text))
