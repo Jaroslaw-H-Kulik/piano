@@ -115,6 +115,7 @@ Every error has the same body: `{"error": "<CODE>", "message": "<text>"}`.
 Deliberately left out of this solution, roughly in the order I would add them:
 
 - **Size limits**: a request body cap, a maximum number of generic fields per customer, a maximum string length and a maximum number of definitions per tenant. Today one tenant can grow rows without bound, and every PATCH rewrites the whole JSONB value.
+- **One query per read**: load the definitions together with the customer (or cache them per tenant) instead of in a second round trip.
 
 ## How this was built
 
